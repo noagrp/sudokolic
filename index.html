@@ -1,292 +1,359 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Sudokolic</title>
-    <style>
-        :root {
-            --bg: #121214;
-            --cell: #1e1e24;
-            --text: #ffffff;
-            --highlight: #3d5afe;
-            --border: #444;
-            --fixed: #777;
-            --win: #4caf50;
-            /* Neon Colors */
-            --neon-primary: #00f2ff;
-            --neon-secondary: #3d5afe;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#121214">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Sudokolic">
+<title>Sudokolic</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<style>
+:root{
+ --bg:#121214;--cell:#1e1e24;--text:#fff;--highlight:#3d5afe;--border:#444;--fixed:#8d8d96;
+ --win:#4caf50;--neon-primary:#00f2ff;--neon-secondary:#3d5afe;--danger:#ff5252;
+ --board:min(92vw,480px,58vh)
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;width:100%;height:100%}
+body{
+ background:var(--bg);color:var(--text);font-family:'Segoe UI',Tahoma,sans-serif;
+ min-height:100vh;min-height:100dvh;overflow:hidden;touch-action:manipulation;
+ display:flex;justify-content:center;
+ padding:max(8px,env(safe-area-inset-top)) max(8px,env(safe-area-inset-right)) max(8px,env(safe-area-inset-bottom)) max(8px,env(safe-area-inset-left))
+}
+#app{width:min(100%,520px);height:100%;display:flex;flex-direction:column;align-items:center;gap:7px}
+.header{text-align:center;flex:0 0 auto}
+.header h1{font-size:clamp(1.45rem,5vw,2rem);margin:0 0 3px;letter-spacing:2px}
+.stats{display:flex;gap:14px;justify-content:center;font:700 .85rem/1.2 monospace;color:#aaa}
+#best{color:#ffd54f}
+.menu{display:flex;gap:7px;width:100%;justify-content:center;flex-wrap:wrap;flex:0 0 auto}
+select,.menu-btn,.tool-btn{
+ padding:8px 10px;background:#2a2a30;color:#fff;border:1px solid #555;border-radius:8px;cursor:pointer;font-weight:700
+}
+.menu-btn:active,.tool-btn:active{transform:translateY(1px)}
+.tool-btn.active{border-color:var(--neon-primary);color:var(--neon-primary);box-shadow:0 0 10px rgba(0,242,255,.28)}
+#boardWrap{position:relative;width:var(--board);height:var(--board);flex:0 0 auto}
+#grid{
+ display:grid;grid-template-columns:repeat(9,1fr);width:100%;height:100%;
+ box-shadow:0 0 20px rgba(0,242,255,.2);padding:4px;position:relative;
+ background:linear-gradient(var(--bg),var(--bg)) padding-box,
+ linear-gradient(var(--angle),var(--neon-primary),var(--neon-secondary),var(--neon-primary)) border-box;
+ border:4px solid transparent;border-radius:6px;animation:rotateGradient 4s linear infinite
+}
+@property --angle{syntax:'<angle>';initial-value:0deg;inherits:false}
+@keyframes rotateGradient{to{--angle:360deg}}
+.cell{
+ position:relative;background:var(--cell);border:.5px solid var(--border);
+ display:flex;align-items:center;justify-content:center;
+ font-size:clamp(1rem,4.8vw,1.65rem);font-weight:600;cursor:pointer;user-select:none
+}
+.cell:nth-child(3n){border-right:3px solid var(--neon-secondary)}
+.cell:nth-child(9n){border-right:.5px solid var(--border)}
+.cell:nth-child(n+19):nth-child(-n+27),.cell:nth-child(n+46):nth-child(-n+54){border-bottom:3px solid var(--neon-secondary)}
+.cell.fixed{color:var(--fixed);font-weight:800;background:#16161c}
+.cell.peer{background:#252539}
+.cell.same{background:#303052}
+.cell.selected{background:var(--highlight);color:#fff;box-shadow:inset 0 0 12px var(--neon-primary)}
+.cell.conflict{color:#fff;background:#72252b;text-shadow:0 0 8px var(--danger)}
+.notes{
+ display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);
+ width:100%;height:100%;font-size:clamp(.38rem,1.7vw,.58rem);line-height:1;color:#9ccfff;padding:2px
+}
+.note{display:flex;align-items:center;justify-content:center}
+#pauseOverlay,#completeOverlay{
+ position:absolute;inset:0;z-index:20;background:rgba(10,10,13,.96);display:flex;flex-direction:column;
+ align-items:center;justify-content:center;text-align:center;padding:20px;border-radius:6px
+}
+.overlay-hidden{display:none!important}
+.overlay-title{font-size:1.7rem;font-weight:900;margin-bottom:8px}
+.overlay-sub{color:#aaa;margin-bottom:16px;line-height:1.4}
+#message{height:20px;font-size:.78rem;font-weight:800;text-transform:uppercase;color:#ffcc00;flex:0 0 auto}
 
-        body {
-            background: var(--bg);
-            color: var(--text);
-            font-family: 'Segoe UI', Tahoma, sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            margin: 0;
-            touch-action: manipulation;
-        }
+.tools{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;width:var(--board);flex:0 0 auto}
+.tool-btn{font-size:.78rem;padding:8px 4px}
+.numpad{
+ display:grid;grid-template-columns:repeat(5,1fr);gap:7px;width:var(--board);flex:0 0 auto
+}
+.btn{
+ position:relative;background:#2a2a30;color:#fff;border:1px solid #444;padding:11px 0;font-size:1.18rem;
+ border-radius:10px;cursor:pointer;box-shadow:0 3px 0 #0d0d10;font-weight:800
+}
+.btn:active{transform:translateY(2px);box-shadow:0 1px 0 #0d0d10;background:var(--highlight)}
+.btn.delete{background:#5b2429}
+.btn.done{opacity:.28}
+.btn.done::after{content:"✓";position:absolute;right:5px;top:2px;font-size:.55rem;color:#6eff9b}
 
-        .header { text-align: center; margin-bottom: 10px; }
-        .stats { display: flex; gap: 20px; font-family: monospace; font-size: 1.1rem; margin-bottom: 10px; color: #aaa; }
-
-        .menu { margin-bottom: 20px; display: flex; gap: 10px; }
-        select, button.menu-btn {
-            padding: 12px 15px;
-            background: #2a2a30;
-            color: white;
-            border: 1px solid #555;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 0.9rem;
-        }
-
-        /* --- NEON FRAME ADJUSTMENTS --- */
-        #grid {
-            display: grid;
-            grid-template-columns: repeat(9, 1fr);
-            width: 92vw;
-            max-width: 450px;
-            aspect-ratio: 1 / 1;
-            box-shadow: 0 0 20px rgba(0, 242, 255, 0.2);
-            position: relative;
-            padding: 4px; /* Space for the neon frame */
-            background: linear-gradient(var(--bg), var(--bg)) padding-box,
-                        linear-gradient(var(--angle), var(--neon-primary), var(--neon-secondary), var(--neon-primary)) border-box;
-            border: 4px solid transparent;
-            border-radius: 4px;
-            animation: rotateGradient 4s linear infinite;
-        }
-
-        @property --angle {
-            syntax: '<angle>';
-            initial-value: 0deg;
-            inherits: false;
-        }
-
-        @keyframes rotateGradient {
-            to { --angle: 360deg; }
-        }
-
-        .cell {
-            background: var(--cell);
-            border: 0.5px solid var(--border);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: clamp(1.2rem, 5vw, 1.6rem);
-            cursor: pointer;
-            user-select: none;
-            transition: all 0.1s;
-        }
-
-        /* 3x3 Subgrid Dividers - Adjusted to Neon */
-        .cell:nth-child(3n) { border-right: 3px solid var(--neon-secondary); }
-        .cell:nth-child(9n) { border-right: 0.5px solid var(--border); } 
-        .cell:nth-child(n+19):nth-child(-n+27),
-        .cell:nth-child(n+46):nth-child(-n+54) { border-bottom: 3px solid var(--neon-secondary); }
-
-        .cell.selected { background: var(--highlight); color: white; box-shadow: inset 0 0 10px var(--neon-primary); }
-        .cell.fixed { color: var(--fixed); font-weight: bold; cursor: default; background: #16161c; }
-        .cell.correct { color: #00ffcc; text-shadow: 0 0 8px #00ffcc; }
-
-        .numpad {
-            display: grid;
-            grid-template-columns: repeat(5, 1fr);
-            gap: 10px;
-            margin-top: 20px;
-            width: 92vw;
-            max-width: 450px;
-        }
-
-        .btn {
-            background: #2a2a30;
-            color: white;
-            border: 1px solid #444;
-            padding: 18px 0;
-            font-size: 1.4rem;
-            border-radius: 12px;
-            cursor: pointer;
-            box-shadow: 0 4px 0 #111;
-        }
-
-        .btn:active { transform: translateY(2px); box-shadow: 0 2px 0 #111; background: var(--highlight); }
-        .btn.delete { background: #662222; }
-
-        #message { margin-top: 15px; font-weight: bold; height: 24px; text-transform: uppercase; color: #ffcc00; }
-    </style>
+@media(max-height:720px){
+ :root{--board:min(88vw,430px,54vh)}
+ .header h1{font-size:1.25rem}.stats{font-size:.72rem}.btn{padding:8px 0}
+ select,.menu-btn,.tool-btn{padding:6px 8px}
+}
+@media(max-width:390px){
+ :root{--board:min(96vw,54vh)}
+ .menu{gap:5px}.numpad,.tools{gap:5px}
+}
+@media(prefers-reduced-motion:reduce){#grid{animation:none}}
+</style>
 </head>
 <body>
+<div id="app">
+ <div class="header">
+   <h1>Sudokolic</h1>
+   <div class="stats">
+     <span id="timer">00:00</span>
+     <span id="clues">Clues: 0</span>
+     <span id="best">Best: --:--</span>
+   </div>
+ </div>
 
-    <div class="header">
-        <h1>Sudokolic</h1>
-        <div class="stats">
-            <span id="timer">00:00</span>
-            <span id="clues">Clues: 0</span>
-        </div>
-    </div>
+ <div class="menu">
+   <select id="difficulty">
+     <option value="easy">Easy</option>
+     <option value="medium">Medium</option>
+     <option value="hard">Hard</option>
+     <option value="expert">Expert</option>
+   </select>
+   <button class="menu-btn" id="newBtn">New</button>
+   <button class="menu-btn" id="pauseBtn">Pause</button>
+ </div>
 
-    <div class="menu">
-        <select id="difficulty">
-            <option value="30">Easy (51 Clues)</option>
-            <option value="45">Medium (36 Clues)</option>
-            <option value="55">Hard (26 Clues)</option>
-            <option value="60">Expert (21 Clues)</option>
-        </select>
-        <button class="menu-btn" onclick="startNewGame()">Generate</button>
-    </div>
+ <div id="boardWrap">
+   <div id="grid"></div>
+   <div id="pauseOverlay" class="overlay-hidden">
+     <div class="overlay-title">PAUSED</div>
+     <button class="menu-btn" id="resumeBtn">Resume</button>
+   </div>
+   <div id="completeOverlay" class="overlay-hidden">
+     <div class="overlay-title" style="color:var(--win)">PUZZLE COMPLETE</div>
+     <div id="completeStats" class="overlay-sub"></div>
+     <button class="menu-btn" id="againBtn">New Puzzle</button>
+   </div>
+ </div>
 
-    <div id="grid"></div>
-    <div id="message"></div>
+ <div id="message"></div>
 
-    <div class="numpad">
-        <button class="btn" onclick="inputNumber(1)">1</button>
-        <button class="btn" onclick="inputNumber(2)">2</button>
-        <button class="btn" onclick="inputNumber(3)">3</button>
-        <button class="btn" onclick="inputNumber(4)">4</button>
-        <button class="btn" onclick="inputNumber(5)">5</button>
-        <button class="btn" onclick="inputNumber(6)">6</button>
-        <button class="btn" onclick="inputNumber(7)">7</button>
-        <button class="btn" onclick="inputNumber(8)">8</button>
-        <button class="btn" onclick="inputNumber(9)">9</button>
-        <button class="btn delete" onclick="inputNumber(0)">⌫</button>
-    </div>
+ <div class="tools">
+   <button class="tool-btn" id="notesBtn">Notes</button>
+   <button class="tool-btn" id="undoBtn">Undo</button>
+   <button class="tool-btn" id="eraseBtn">Erase</button>
+   <button class="tool-btn" id="checkBtn">Check</button>
+ </div>
 
-    <script>
-        const gridElement = document.getElementById('grid');
-        const messageElement = document.getElementById('message');
-        const timerElement = document.getElementById('timer');
-        const clueElement = document.getElementById('clues');
-        
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        function playSfx(f, t, d, v=0.1) {
-            if (audioCtx.state === 'suspended') audioCtx.resume();
-            const o = audioCtx.createOscillator();
-            const g = audioCtx.createGain();
-            o.type = t; o.frequency.setValueAtTime(f, audioCtx.currentTime);
-            g.gain.setValueAtTime(v, audioCtx.currentTime);
-            g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + d);
-            o.connect(g); g.connect(audioCtx.destination);
-            o.start(); o.stop(audioCtx.currentTime + d);
-        }
+ <div class="numpad" id="numpad"></div>
+</div>
 
-        let selectedIndex = -1;
-        let solution = [];
-        let currentGrid = [];
-        let initialMask = [];
-        let timerInterval;
-        let seconds = 0;
+<script>
+const gridElement=document.getElementById('grid');
+const messageElement=document.getElementById('message');
+const timerElement=document.getElementById('timer');
+const clueElement=document.getElementById('clues');
+const bestElement=document.getElementById('best');
+const difficultyEl=document.getElementById('difficulty');
+const notesBtn=document.getElementById('notesBtn');
+const undoBtn=document.getElementById('undoBtn');
+const pauseBtn=document.getElementById('pauseBtn');
+const pauseOverlay=document.getElementById('pauseOverlay');
+const completeOverlay=document.getElementById('completeOverlay');
+const AudioCtx=window.AudioContext||window.webkitAudioContext;
+let audioCtx=null;
+function playSfx(f,t,d,v=.08){
+ try{
+   if(!audioCtx)audioCtx=new AudioCtx();
+   if(audioCtx.state==='suspended')audioCtx.resume();
+   const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+   o.type=t;o.frequency.setValueAtTime(f,audioCtx.currentTime);
+   g.gain.setValueAtTime(v,audioCtx.currentTime);
+   g.gain.exponentialRampToValueAtTime(.0001,audioCtx.currentTime+d);
+   o.connect(g);g.connect(audioCtx.destination);o.start();o.stop(audioCtx.currentTime+d);
+ }catch(e){}
+}
 
-        function generateSudoku() {
-            let board = [
-                1,2,3,4,5,6,7,8,9,
-                4,5,6,7,8,9,1,2,3,
-                7,8,9,1,2,3,4,5,6,
-                2,3,1,5,6,4,8,9,7,
-                5,6,4,8,9,7,2,3,1,
-                8,9,7,2,3,1,5,6,4,
-                3,1,2,6,4,5,9,7,8,
-                6,4,5,9,7,8,3,1,2,
-                9,7,8,3,1,2,6,4,5
-            ];
-            const nums = [1,2,3,4,5,6,7,8,9].sort(() => Math.random() - 0.5);
-            return board.map(n => nums[n-1]);
-        }
+let selectedIndex=-1,solution=[],currentGrid=[],initialMask=[],notes=[],history=[];
+let timerInterval=null,seconds=0,paused=false,completed=false,notesMode=false;
+const clueTargets={easy:45,medium:36,hard:30,expert:26};
 
-        function startNewGame() {
-            clearInterval(timerInterval);
-            seconds = 0;
-            updateTimer();
-            timerInterval = setInterval(() => { seconds++; updateTimer(); }, 1000);
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function isValid(board,idx,n){
+ const r=Math.floor(idx/9),c=idx%9;
+ for(let i=0;i<9;i++){if(board[r*9+i]===n||board[i*9+c]===n)return false}
+ const br=Math.floor(r/3)*3,bc=Math.floor(c/3)*3;
+ for(let rr=br;rr<br+3;rr++)for(let cc=bc;cc<bc+3;cc++)if(board[rr*9+cc]===n)return false;
+ return true;
+}
+function fillBoard(board,idx=0){
+ while(idx<81&&board[idx]!==0)idx++;
+ if(idx===81)return true;
+ for(const n of shuffle([1,2,3,4,5,6,7,8,9])){
+   if(isValid(board,idx,n)){board[idx]=n;if(fillBoard(board,idx+1))return true;board[idx]=0}
+ }
+ return false;
+}
+function countSolutions(board,limit=2){
+ let count=0;
+ function solve(idx=0){
+   if(count>=limit)return;
+   while(idx<81&&board[idx]!==0)idx++;
+   if(idx===81){count++;return}
+   for(let n=1;n<=9;n++){
+     if(isValid(board,idx,n)){board[idx]=n;solve(idx+1);board[idx]=0;if(count>=limit)return}
+   }
+ }
+ solve();return count;
+}
+function generatePuzzle(targetClues){
+ const solved=Array(81).fill(0);fillBoard(solved);
+ const puzzle=[...solved],order=shuffle([...Array(81).keys()]);
+ let clues=81;
+ for(const idx of order){
+   if(clues<=targetClues)break;
+   const keep=puzzle[idx];puzzle[idx]=0;
+   const test=[...puzzle];
+   if(countSolutions(test,2)===1)clues--;else puzzle[idx]=keep;
+ }
+ return {solution:solved,puzzle,clues};
+}
 
-            const cellsToRemove = parseInt(document.getElementById('difficulty').value);
-            solution = generateSudoku();
-            currentGrid = [...solution];
-            initialMask = new Array(81).fill(true);
-            
-            let removed = 0;
-            while(removed < cellsToRemove) {
-                let idx = Math.floor(Math.random() * 81);
-                if(initialMask[idx]) {
-                    initialMask[idx] = false;
-                    currentGrid[idx] = 0;
-                    removed++;
-                }
-            }
+function formatTime(s){
+ const m=Math.floor(s/60).toString().padStart(2,'0'),ss=(s%60).toString().padStart(2,'0');return `${m}:${ss}`;
+}
+function updateBest(){
+ const key=`sudokolic-best-${difficultyEl.value}`;
+ const old=Number(localStorage.getItem(key)||0);
+ if(!old||seconds<old)localStorage.setItem(key,String(seconds));
+ refreshBest();
+}
+function refreshBest(){
+ const v=Number(localStorage.getItem(`sudokolic-best-${difficultyEl.value}`)||0);
+ bestElement.textContent=`Best: ${v?formatTime(v):'--:--'}`;
+}
+function startTimer(){
+ clearInterval(timerInterval);
+ timerInterval=setInterval(()=>{if(!paused&&!completed){seconds++;timerElement.textContent=formatTime(seconds)}},1000);
+}
 
-            clueElement.innerText = `Clues: ${81 - removed}`;
-            renderGrid();
-            messageElement.innerText = "";
-            playSfx(440, 'sine', 0.1);
-        }
+function startNewGame(){
+ messageElement.textContent='Generating...';messageElement.style.color='#ffcc00';
+ completeOverlay.classList.add('overlay-hidden');pauseOverlay.classList.add('overlay-hidden');
+ paused=false;completed=false;notesMode=false;notesBtn.classList.remove('active');
+ selectedIndex=-1;history=[];seconds=0;timerElement.textContent='00:00';
+ const target=clueTargets[difficultyEl.value];
+ const g=generatePuzzle(target);
+ solution=g.solution;currentGrid=[...g.puzzle];initialMask=g.puzzle.map(v=>v!==0);
+ notes=Array.from({length:81},()=>new Set());
+ clueElement.textContent=`Clues: ${g.clues}`;
+ messageElement.textContent='';refreshBest();renderGrid();renderNumpad();startTimer();playSfx(440,'sine',.09);
+}
+function peerIndices(idx){
+ const r=Math.floor(idx/9),c=idx%9,set=new Set();
+ for(let i=0;i<9;i++){set.add(r*9+i);set.add(i*9+c)}
+ const br=Math.floor(r/3)*3,bc=Math.floor(c/3)*3;
+ for(let rr=br;rr<br+3;rr++)for(let cc=bc;cc<bc+3;cc++)set.add(rr*9+cc);
+ set.delete(idx);return set;
+}
+function conflictAt(idx){
+ const n=currentGrid[idx];if(!n)return false;
+ for(const p of peerIndices(idx))if(currentGrid[p]===n)return true;
+ return false;
+}
+function renderGrid(){
+ gridElement.innerHTML='';
+ const peers=selectedIndex>=0?peerIndices(selectedIndex):new Set();
+ const selectedValue=selectedIndex>=0?currentGrid[selectedIndex]:0;
+ for(let i=0;i<81;i++){
+   const cell=document.createElement('div');cell.className='cell';
+   if(initialMask[i])cell.classList.add('fixed');
+   if(peers.has(i))cell.classList.add('peer');
+   if(selectedValue&&currentGrid[i]===selectedValue&&i!==selectedIndex)cell.classList.add('same');
+   if(i===selectedIndex)cell.classList.add('selected');
+   if(!initialMask[i]&&conflictAt(i))cell.classList.add('conflict');
+   if(currentGrid[i])cell.textContent=currentGrid[i];
+   else if(notes[i].size){
+     const wrap=document.createElement('div');wrap.className='notes';
+     for(let n=1;n<=9;n++){const s=document.createElement('span');s.className='note';s.textContent=notes[i].has(n)?n:'';wrap.appendChild(s)}
+     cell.appendChild(wrap);
+   }
+   cell.onclick=()=>selectCell(i);gridElement.appendChild(cell);
+ }
+ renderNumpad();
+}
+function selectCell(index){if(paused||completed)return;selectedIndex=index;renderGrid();playSfx(620,'triangle',.035,.035)}
+function snapshot(idx){history.push({idx,value:currentGrid[idx],notes:new Set(notes[idx])});if(history.length>100)history.shift()}
+function removePeerNote(idx,n){for(const p of peerIndices(idx))notes[p].delete(n)}
+function inputNumber(num){
+ if(paused||completed||selectedIndex<0||initialMask[selectedIndex])return;
+ snapshot(selectedIndex);
+ if(notesMode&&num!==0&&currentGrid[selectedIndex]===0){
+   notes[selectedIndex].has(num)?notes[selectedIndex].delete(num):notes[selectedIndex].add(num);
+   playSfx(700,'triangle',.04,.04);
+ }else{
+   currentGrid[selectedIndex]=num;notes[selectedIndex].clear();
+   if(num)removePeerNote(selectedIndex,num);
+   playSfx(num?820:300,'sine',.045,.045);
+ }
+ renderGrid();checkWin();
+}
+function undo(){
+ if(!history.length||paused||completed)return;
+ const h=history.pop();currentGrid[h.idx]=h.value;notes[h.idx]=new Set(h.notes);selectedIndex=h.idx;renderGrid();playSfx(360,'triangle',.05,.04);
+}
+function checkBoard(){
+ if(paused||completed)return;
+ let conflicts=0,wrong=0;
+ for(let i=0;i<81;i++){
+   if(!initialMask[i]&&currentGrid[i]){
+     if(conflictAt(i))conflicts++;
+     else if(currentGrid[i]!==solution[i])wrong++;
+   }
+ }
+ if(conflicts){messageElement.textContent=`${conflicts} conflict${conflicts>1?'s':''} found`;messageElement.style.color='#ff5252'}
+ else if(wrong){messageElement.textContent=`${wrong} incorrect entr${wrong>1?'ies':'y'}`;messageElement.style.color='#ff9800'}
+ else{messageElement.textContent='No conflicts';messageElement.style.color='#63ff9b'}
+ renderGrid();
+}
+function checkWin(){
+ if(currentGrid.every(v=>v!==0)&&currentGrid.every((v,i)=>v===solution[i])){
+   completed=true;clearInterval(timerInterval);updateBest();
+   document.getElementById('completeStats').innerHTML=`${difficultyEl.options[difficultyEl.selectedIndex].text}<br>Time <strong>${formatTime(seconds)}</strong>`;
+   completeOverlay.classList.remove('overlay-hidden');
+   playSfx(523,'square',.18);setTimeout(()=>playSfx(659,'square',.18),130);setTimeout(()=>playSfx(783,'square',.3),260);
+ }
+}
+function renderNumpad(){
+ const pad=document.getElementById('numpad');pad.innerHTML='';
+ for(let n=1;n<=9;n++){
+   const b=document.createElement('button');b.className='btn';b.textContent=n;
+   const count=currentGrid.filter(v=>v===n).length;if(count>=9)b.classList.add('done');
+   b.onclick=()=>inputNumber(n);pad.appendChild(b);
+ }
+ const del=document.createElement('button');del.className='btn delete';del.textContent='⌫';del.onclick=()=>inputNumber(0);pad.appendChild(del);
+}
+function setPause(v){
+ if(completed)return;paused=v;pauseOverlay.classList.toggle('overlay-hidden',!paused);pauseBtn.textContent=paused?'Resume':'Pause';
+}
+notesBtn.onclick=()=>{notesMode=!notesMode;notesBtn.classList.toggle('active',notesMode)};
+undoBtn.onclick=undo;
+document.getElementById('eraseBtn').onclick=()=>inputNumber(0);
+document.getElementById('checkBtn').onclick=checkBoard;
+document.getElementById('newBtn').onclick=startNewGame;
+pauseBtn.onclick=()=>setPause(!paused);
+document.getElementById('resumeBtn').onclick=()=>setPause(false);
+document.getElementById('againBtn').onclick=startNewGame;
+difficultyEl.onchange=()=>{refreshBest();startNewGame()};
 
-        function renderGrid() {
-            gridElement.innerHTML = '';
-            for (let i = 0; i < 81; i++) {
-                const cell = document.createElement('div');
-                cell.classList.add('cell');
-                if (initialMask[i]) {
-                    cell.innerText = currentGrid[i];
-                    cell.classList.add('fixed');
-                } else {
-                    cell.innerText = currentGrid[i] !== 0 ? currentGrid[i] : '';
-                    cell.onclick = () => selectCell(i);
-                }
-                if (i === selectedIndex) cell.classList.add('selected');
-                gridElement.appendChild(cell);
-            }
-        }
+window.addEventListener('keydown',e=>{
+ if(e.key>='1'&&e.key<='9')inputNumber(Number(e.key));
+ else if(e.key==='Backspace'||e.key==='Delete'||e.key==='0')inputNumber(0);
+ else if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'){e.preventDefault();undo()}
+ else if(e.key.toLowerCase()==='n'){notesMode=!notesMode;notesBtn.classList.toggle('active',notesMode)}
+ else if(e.key==='Escape')setPause(!paused);
+});
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&!completed)setPause(true)});
+refreshBest();startNewGame();
 
-        function selectCell(index) {
-            selectedIndex = index;
-            renderGrid();
-            playSfx(600, 'triangle', 0.05, 0.05);
-        }
-
-        function inputNumber(num) {
-            if (selectedIndex === -1 || initialMask[selectedIndex]) return;
-            currentGrid[selectedIndex] = num;
-            renderGrid();
-            
-            if (num !== 0) playSfx(800, 'sine', 0.05, 0.05);
-            else playSfx(300, 'sine', 0.05, 0.05);
-
-            checkWin();
-        }
-
-        function checkWin() {
-            if (currentGrid.every(val => val !== 0)) {
-                const isCorrect = currentGrid.every((val, i) => val === solution[i]);
-                if (isCorrect) {
-                    clearInterval(timerInterval);
-                    messageElement.innerText = "🏆 PUZZLE COMPLETE!";
-                    messageElement.style.color = "#4caf50";
-                    playSfx(523, 'square', 0.2);
-                    setTimeout(() => playSfx(659, 'square', 0.2), 150);
-                    setTimeout(() => playSfx(783, 'square', 0.4), 300);
-                } else {
-                    messageElement.innerText = "❌ Logic Mismatch Found";
-                    messageElement.style.color = "#f44336";
-                }
-            }
-        }
-
-        function updateTimer() {
-            const m = Math.floor(seconds / 60).toString().padStart(2, '0');
-            const s = (seconds % 60).toString().padStart(2, '0');
-            timerElement.innerText = `${m}:${s}`;
-        }
-
-        window.addEventListener('keydown', (e) => {
-            if (e.key >= 1 && e.key <= 9) inputNumber(parseInt(e.key));
-            if (e.key === 'Backspace' || e.key === '0') inputNumber(0);
-        });
-
-        startNewGame();
-    </script>
+if('serviceWorker'in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('./service-worker.js'))}
+</script>
 </body>
 </html>
